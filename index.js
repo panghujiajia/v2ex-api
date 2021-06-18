@@ -1,6 +1,12 @@
 const express = require('express');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
+const axios = require('axios');
+const dayjs = require('dayjs');
+const relativeTime = require('dayjs/plugin/relativeTime');
+require('dayjs/locale/zh');
+dayjs.locale('zh');
+dayjs.extend(relativeTime);
 
 const app = express();
 
@@ -13,6 +19,11 @@ app.all('*', function (req, res, next) {
 });
 
 const url = 'https://cdn.v2ex.co';
+
+const proxy = {
+	host: '127.0.0.1',
+	port: 7890,
+};
 
 app.get('/', (req, res) => {
 	res.send('hello world');
@@ -27,7 +38,12 @@ app.get('/api/topics/tab', async (req, res) => {
 		});
 		return;
 	}
-	const data = await getTabTopics(tab);
+	let data = [];
+	if (tab === 'top') {
+		data = await getHotTopics();
+	} else {
+		data = await getTabTopics(tab);
+	}
 	res.send({
 		status: 200,
 		message: '请求成功',
@@ -69,6 +85,35 @@ app.get('/api/topics/detail', async (req, res) => {
 	});
 });
 
+getHotTopics = async () => {
+	try {
+		const res = await rp(`${url}/api/topics/hot.json`);
+		const list = JSON.parse(res);
+		const len = list.length;
+		if (list && len) {
+			const data = [];
+			let i = 0;
+			for (; i < len; i++) {
+				const item = list[i];
+				data.push({
+					id: item.id, // id
+					reply_num: item.replies, // 回复数
+					title: item.title, // 标题
+					last_reply: dayjs(item.last_modified * 1000).fromNow(), // 最后回复时间
+					author: item.member.username, // 作者名
+					avatar: item.member.avatar_mini, // 头像地址
+					tag_value: item.node.name, // node地址
+					tab_name: item.node.title, // node名
+				});
+			}
+			return data;
+		}
+		return false;
+	} catch (error) {
+		return false;
+	}
+};
+
 getTopicDetail = async id => {
 	try {
 		const res_detail = rp(`${url}/api/topics/show.json?id=${id}`);
@@ -87,7 +132,7 @@ getTopicDetail = async id => {
 						index: i + 1,
 						id: item.member.id,
 						author: item.member.username,
-						last_reply: item.last_modified,
+						last_reply: dayjs(item.last_modified * 1000).fromNow(),
 						avatar_url: item.member.avatar_mini,
 					};
 				}
@@ -122,7 +167,9 @@ getTabTopics = async tab => {
 					.children()
 					.text(),
 				avatar: item.find($('.avatar')).attr('src'),
-				last_reply: item.find($('.topic_info span')).attr('title'),
+				last_reply: dayjs(
+					item.find($('.topic_info span')).attr('title')
+				).fromNow(),
 				replyer: item
 					.find($('.topic_info strong'))
 					.last()
@@ -131,7 +178,6 @@ getTabTopics = async tab => {
 			};
 			data.push(obj);
 		}
-		console.log(data);
 		return data;
 	} catch (error) {
 		return false;
@@ -159,7 +205,9 @@ getAllTopics = async (tab, p) => {
 					.children()
 					.text(),
 				avatar: item.find($('.avatar')).attr('src'),
-				last_reply: item.find($('.topic_info span')).attr('title'),
+				last_reply: dayjs(
+					item.find($('.topic_info span')).attr('title')
+				).fromNow(),
 				replyer: item
 					.find($('.topic_info strong'))
 					.last()
@@ -168,7 +216,6 @@ getAllTopics = async (tab, p) => {
 			};
 			data.push(obj);
 		}
-		console.log(data);
 		return data;
 	} catch (error) {
 		return false;
