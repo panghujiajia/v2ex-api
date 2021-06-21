@@ -122,18 +122,19 @@ getTopicDetail = async id => {
 		if (data && data.length) {
 			const detail = JSON.parse(data[0]);
 			const replys = JSON.parse(data[1]);
+			const master_id = detail[0].member.id;
 			if (replys && replys.length) {
 				const len = replys.length;
 				for (let i = 0; i < len; i++) {
 					const item = replys[i];
-					const is_master = item.member.id === id;
+					const is_master = item.member.id === master_id;
 					item.user = {
 						is_master,
 						index: i + 1,
 						id: item.member.id,
 						author: item.member.username,
 						last_reply: dayjs(item.last_modified * 1000).fromNow(),
-						avatar_url: item.member.avatar_mini,
+						avatar: item.member.avatar_mini,
 					};
 				}
 				return { detail, replys };
