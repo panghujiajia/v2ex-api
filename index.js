@@ -87,15 +87,18 @@ app.get('/api/topics/detail', async (req, res) => {
 
 getHotTopics = async () => {
 	try {
-		const res = await rp(`${url}/api/topics/hot.json`);
-		const list = JSON.parse(res);
-		const len = list.length;
-		if (list && len) {
-			const data = [];
+		const res = await axios.get(`${url}/api/topics/hot.json`);
+		const { status, data } = res;
+		if (status !== 200) {
+			return false;
+		}
+		const len = data.length;
+		if (data && len) {
+			const list = [];
 			let i = 0;
 			for (; i < len; i++) {
-				const item = list[i];
-				data.push({
+				const item = data[i];
+				list.push({
 					id: item.id, // id
 					reply_num: item.replies, // 回复数
 					title: item.title, // 标题
@@ -106,7 +109,7 @@ getHotTopics = async () => {
 					tab_name: item.node.title, // node名
 				});
 			}
-			return data;
+			return list;
 		}
 		return false;
 	} catch (error) {
@@ -116,14 +119,21 @@ getHotTopics = async () => {
 
 getTopicDetail = async id => {
 	try {
-		const res_detail = rp(`${url}/api/topics/show.json?id=${id}`);
-		const res_replys = rp(`${url}/api/replies/show.json?topic_id=${id}`);
+		const res_detail = axios.get(`${url}/api/topics/show.json?id=${id}`);
+		const res_replys = axios.get(
+			`${url}/api/replies/show.json?topic_id=${id}`
+		);
 		const data = await Promise.all([res_detail, res_replys]);
 		if (data && data.length) {
-			const detail = JSON.parse(data[0]);
-			const replys = JSON.parse(data[1]);
+			const detail_res = data[0];
+			const replys_res = data[1];
+			if (detail_res.status !== 200 || replys_res.status !== 200) {
+				return false;
+			}
+			const detail = detail_res.data;
+			const replys = replys_res.data;
 			const master_id = detail[0].member.id;
-			if (replys && replys.length) {
+			if (replys) {
 				const len = replys.length;
 				for (let i = 0; i < len; i++) {
 					const item = replys[i];
