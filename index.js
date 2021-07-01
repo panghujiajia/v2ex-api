@@ -2,6 +2,8 @@ const express = require('express');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const bodyParser = require('body-parser');
+var jsonParser = bodyParser.json();
 const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 require('dayjs/locale/zh');
@@ -84,6 +86,72 @@ app.get('/api/topics/detail', async (req, res) => {
 		data,
 	});
 });
+
+app.get('/api/getLoginParams', async (req, res) => {
+	const data = await getLoginParams();
+	res.send({
+		status: 200,
+		message: '请求成功',
+		data,
+	});
+});
+
+app.post('/api/login', jsonParser, async (req, res) => {
+	const data = await login(req.body);
+});
+
+login = async params => {
+	try {
+		const { cookie, ...rest } = params;
+		const res = await axios.post(`${url}/signin`, rest, {
+			headers: {
+				'user-agent':
+					'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+				'content-type': 'application/x-www-form-urlencoded',
+				origin: 'https://cdn.v2ex.co',
+				referer: 'https://cdn.v2ex.co/signin',
+				host: 'cdn.v2ex.co',
+				cookie,
+			},
+		});
+		console.log('res-------------------------------------------', res);
+	} catch (error) {}
+};
+
+getCode = async (once, cookie) => {
+	try {
+		const res = await axios.get(`${url}/_captcha?once=${once}`, {
+			headers: {
+				Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+				'Accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7',
+				cookie,
+			},
+			responseType: 'arraybuffer',
+		});
+		return res.data;
+	} catch (error) {}
+};
+
+getLoginParams = async () => {
+	try {
+		const res = await axios.get(`${url}/signin`);
+		// 拿到cookie列表
+		const cookies = res.headers['set-cookie'];
+		let cookie = cookies.map(item => {
+			return item.split(';')[0];
+		});
+		// 取到需要的值进行拼装
+		cookie = cookie.join(';');
+		const $ = cheerio.load(res.data);
+		const formList = $('#Main .box .cell').find($('.sl'));
+		const username_key = $(formList[0]).attr('name');
+		const password_key = $(formList[1]).attr('name');
+		const code_key = $(formList[2]).attr('name');
+		const once = $('#Main .box').find($('.super')).prev().attr('value');
+		const codeUrl = await getCode(once, cookie);
+		return { username_key, password_key, code_key, once, codeUrl, cookie };
+	} catch (error) {}
+};
 
 getHotTopics = async () => {
 	try {
