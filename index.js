@@ -240,7 +240,7 @@ getTabTopics = async tab => {
 				title: item.find($('.topic-link')).text(),
 				reply_num: item.find($('.count_livid')).text() || 0,
 				tab_name: item.find($('.node')).text(),
-				tab_value: item.find($('.node')).attr('href').split('/')[2],
+				tag_value: item.find($('.node')).attr('href').split('/')[2],
 				author: item
 					.find($('.topic_info strong'))
 					.first()
