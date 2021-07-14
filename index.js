@@ -114,7 +114,6 @@ login = async params => {
 				cookie,
 			},
 		});
-		console.log('res-------------------------------------------', res);
 	} catch (error) {}
 };
 
@@ -268,8 +267,13 @@ getAllTopics = async (tab, p) => {
 	try {
 		const res = await rp(`${url}/go/${tab}?p=${p}`);
 		const $ = cheerio.load(res);
+		const header = $('.page-content-header');
 		const list = $('#TopicsNode').find($('.cell'));
 		const len = list.length;
+		const nodeInfo = {
+			topic_count: $(header).find($('.topic-count strong')).text(),
+			topic_intro: $(header).find($('.intro')).text(),
+		};
 		const data = [];
 		let i = 0;
 		for (; i < len; i++) {
@@ -296,7 +300,7 @@ getAllTopics = async (tab, p) => {
 			};
 			data.push(obj);
 		}
-		return data;
+		return { data, nodeInfo };
 	} catch (error) {
 		return false;
 	}
