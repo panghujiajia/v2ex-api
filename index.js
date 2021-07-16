@@ -105,13 +105,9 @@ login = async params => {
 		const { cookie, ...rest } = params;
 		const res = await axios.post(`${url}/signin`, rest, {
 			headers: {
-				'user-agent':
-					'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-				'content-type': 'application/x-www-form-urlencoded',
-				origin: 'https://cdn.v2ex.co',
-				referer: 'https://cdn.v2ex.co/signin',
-				host: 'cdn.v2ex.co',
-				cookie,
+				'Content-Type': 'application/x-www-form-urlencoded',
+				Origin: `${url}/`,
+				Referer: `${url}/signin`,
 			},
 		});
 	} catch (error) {}
