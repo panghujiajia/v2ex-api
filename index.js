@@ -1,7 +1,7 @@
 const express = require('express');
-const rp = require('request-promise');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const tunnel = require('tunnel');
 const bodyParser = require('body-parser');
 var jsonParser = bodyParser.json();
 const dayjs = require('dayjs');
@@ -20,12 +20,19 @@ app.all('*', function (req, res, next) {
 	next();
 });
 
-const url = 'https://cdn.v2ex.co';
+const url = 'https://www.v2ex.com';
 
 const proxy = {
 	host: '127.0.0.1',
 	port: 7890,
 };
+
+const agent = tunnel.httpsOverHttp({
+	proxy: {
+		host: '127.0.0.1',
+		port: 7890,
+	},
+});
 
 app.get('/', (req, res) => {
 	res.send('hello world');
@@ -150,7 +157,10 @@ getLoginParams = async () => {
 
 getHotTopics = async () => {
 	try {
-		const res = await axios.get(`${url}/api/topics/hot.json`);
+		const res = await axios.get(`${url}/api/topics/hot.json`, {
+			proxy: false,
+			httpsAgent: agent,
+		});
 		const { status, data } = res;
 		if (status !== 200) {
 			return false;
@@ -182,11 +192,18 @@ getHotTopics = async () => {
 
 getTopicDetail = async id => {
 	try {
-		const res_detail = axios.get(`${url}/api/topics/show.json?id=${id}`);
+		const res_detail = axios.get(`${url}/api/topics/show.json?id=${id}`, {
+			proxy: false,
+			httpsAgent: agent,
+		});
 		const res_replys = axios.get(
-			`${url}/api/replies/show.json?topic_id=${id}`
+			`${url}/api/replies/show.json?topic_id=${id}`,
+			{
+				proxy: false,
+				httpsAgent: agent,
+			}
 		);
-		const data = await Promise.all([res_detail, res_replys]);
+		const data = await Promise.all([res_detail.data, res_replys.data]);
 		if (data && data.length) {
 			const detail_res = data[0];
 			const replys_res = data[1];
@@ -221,8 +238,11 @@ getTopicDetail = async id => {
 
 getTabTopics = async tab => {
 	try {
-		const res = await rp(`${url}?tab=${tab}`);
-		const $ = cheerio.load(res);
+		const res = await axios.get(`${url}?tab=${tab}`, {
+			proxy: false,
+			httpsAgent: agent,
+		});
+		const $ = cheerio.load(res.data);
 		const list = $('#Main .box').find($('.item'));
 		const len = list.length;
 		const data = [];
@@ -261,8 +281,11 @@ getTabTopics = async tab => {
 
 getAllTopics = async (tab, p) => {
 	try {
-		const res = await rp(`${url}/go/${tab}?p=${p}`);
-		const $ = cheerio.load(res);
+		const res = await axios.get(`${url}/go/${tab}?p=${p}`, {
+			proxy: false,
+			httpsAgent: agent,
+		});
+		const $ = cheerio.load(res.data);
 		const header = $('.page-content-header');
 		const list = $('#TopicsNode').find($('.cell'));
 		const len = list.length;
